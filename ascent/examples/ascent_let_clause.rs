@@ -36,20 +36,24 @@ fn main() {
 
     prog.run();
 
-    let AscentProgram { mut list, ..} = prog;
+    let AscentProgram { mut list, __list_ind_common, list_indices_0_1, list_indices_none, scc_times, scc_iters, update_time_nanos, update_indices_duration  } = prog;
 
     list.sort_by_key(|(_, key)| *key);
 
-    let lists: Vec<_> = list.into_iter().map(|(list, len)| {
-        (list.as_vec(), len)
-    }).collect();
+    let lists: Vec<_> = list
+        .into_iter()
+        .map(|(list, len)| (list.as_vec(), len))
+        .collect();
 
-    assert_eq!(lists, vec![
-        (vec![], 0),
-        (vec![0], 1),
-        (vec![1, 0], 2),
-        (vec![2, 1, 0], 3),
-        (vec![3, 2, 1, 0], 4),
-        (vec![4, 3, 2, 1, 0], 5),
-    ]);
+    assert_eq!(
+        lists,
+        vec![
+            (vec![], 0),
+            (vec![0], 1),
+            (vec![1, 0], 2),
+            (vec![2, 1, 0], 3),
+            (vec![3, 2, 1, 0], 4),
+            (vec![4, 3, 2, 1, 0], 5),
+        ]
+    );
 }

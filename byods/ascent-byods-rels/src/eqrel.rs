@@ -3,7 +3,7 @@
 #[doc(hidden)]
 #[macro_export]
 macro_rules! eqrel_rel_codegen {
-   ( $($tt: tt)* ) => { };
+    ( $($tt: tt)* ) => {};
 }
 pub use eqrel_rel_codegen as rel_codegen;
 

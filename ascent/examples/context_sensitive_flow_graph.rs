@@ -33,26 +33,25 @@ ascent! {
     relation succ(Instr, Context, Instr, Context);
 
     // Rules:
-    
+
     relation flow(Instr, Context, Instr, Context);
-    
+
     flow(i1, c1, i2, c2) <-- succ(i1, c1, i2, c2);
     flow(i1, c1, i3, c3) <-- flow(i1, c1, i2, c2), flow(i2, c2, i3, c3);
 
     relation res(Res);
-    
+
     res(Res::Ok) <-- flow(Instr("w1"), Context("c1"), Instr("r2"), Context("c1"));
     res(Res::Err) <-- flow(Instr("w1"), Context("c1"), Instr("r2"), Context("c2"));
 }
 
 fn main() {
     let mut prog = AscentProgram::default();
-    
+
     prog.succ = vec![
         (Instr("w1"), Context("c1"), Instr("w2"), Context("c1")),
         (Instr("w2"), Context("c1"), Instr("r1"), Context("c1")),
         (Instr("r1"), Context("c1"), Instr("r2"), Context("c1")),
-
         (Instr("w1"), Context("c2"), Instr("w2"), Context("c2")),
         (Instr("w2"), Context("c2"), Instr("r1"), Context("c2")),
         (Instr("r1"), Context("c2"), Instr("r2"), Context("c2")),
@@ -60,9 +59,7 @@ fn main() {
 
     prog.run();
 
-    let AscentProgram { res, ..} = prog;
+    let AscentProgram { res, .. } = prog;
 
-    assert_eq!(res, vec![
-        (Res::Ok,),
-    ]);
+    assert_eq!(res, vec![(Res::Ok,),]);
 }

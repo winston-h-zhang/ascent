@@ -12,12 +12,12 @@ macro_rules! trrel_uf_ind_common {
          // reverse_map_1 required:
          {$crate::inds_contain!($indices, [1]) || $crate::inds_contain!($indices, [1, 2])},
          // reverse_map_2 required:
-         {$crate::inds_contain!($indices, [2]) || $crate::inds_contain!($indices, [1, 2])}, 
-         $col0, $col1, $col2, 
+         {$crate::inds_contain!($indices, [2]) || $crate::inds_contain!($indices, [1, 2])},
+         $col0, $col1, $col2,
          $crate::trrel_union_find_binary_ind::TrRelIndCommon<$col1>
       >
    };
 }
 pub use trrel_uf_ind_common as rel_ind_common;
 
-pub use crate::adaptor::bin_rel_plus_ternary_provider::{rel_codegen, rel_ind, rel_full_ind, rel};
+pub use crate::adaptor::bin_rel_plus_ternary_provider::{rel, rel_codegen, rel_full_ind, rel_ind};

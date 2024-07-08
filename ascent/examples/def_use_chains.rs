@@ -76,13 +76,13 @@ fn main() {
 
     prog.run();
 
-    let AscentProgram { mut def_use, ..} = prog;
+    let AscentProgram { mut def_use, .. } = prog;
 
     def_use.sort_by_key(|(key, _)| key.0);
     def_use.sort_by_key(|(_, key)| key.0);
-    
-    assert_eq!(def_use, vec![
-        (Write("w1"), Read("r1")),
-        (Write("w1"), Read("r2")),
-    ]);
+
+    assert_eq!(
+        def_use,
+        vec![(Write("w1"), Read("r1")), (Write("w1"), Read("r2")),]
+    );
 }
