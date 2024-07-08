@@ -17,10 +17,10 @@ ascent! {
     fib_table(x, y, z), fib(x, y + z) <-- number(x), if *x >= 2, fib(x - 1, y), fib(x - 2, z);
     // basically collect the queries on the RHS into a tuple, so
     // - number(x) -> x
-    // - fib(x - 1, y) -> x - 1, y
-    // - fib(x - 2, z) -> x - 2, z
+    // - fib(x - 1, y) -> y
+    // - fib(x - 2, z) ->  z
     // and in total we get x, x-1, y, x-2, z
-    // fib_table(x, x - 1, y, x - 2, z) <-- number(x), if *x >= 2, fib(x - 1, y), fib(x - 2, z);
+    // fib_table(x, y, z) <-- number(x), if *x >= 2, fib(x - 1, y), fib(x - 2, z);
 }
 
 new_ascent! {
@@ -38,7 +38,7 @@ new_ascent! {
     fib(0, 1) <-- number(0);
     fib(1, 1) <-- number(1);
 
-    #[with_bindings(fib_tabl)]
+    #[with_bindings(fib_table_2)]
     fib(x, y + z) <-- number(x), if *x >= 2, fib(x - 1, y), fib(x - 2, z);
 }
 
@@ -64,13 +64,13 @@ fn main() {
 
     prog.run();
 
-    let NewAscentProgram { mut fib, mut fib_tabl, wut, .. } = prog;
+    let NewAscentProgram { mut fib, mut fib_table_2, .. } = prog;
 
     fib.sort_by_key(|(key, _)| *key);
-    fib_tabl.sort_by_key(|(key, _, _)| *key);
+    fib_table_2.sort_by_key(|(key, _, _)| *key);
 
     assert_eq!(fib, vec![(0, 1), (1, 1), (2, 2), (3, 3), (4, 5), (5, 8),]);
-    println!("{:?}", fib_tabl);
+    println!("{:?}", fib_table_2);
 
-    assert_eq!(fib_table, fib_tabl);
+    assert_eq!(fib_table, fib_table_2);
 }
