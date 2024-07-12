@@ -71,15 +71,15 @@ pub use bin_rel_plus_ternary_provider_ind as rel_ind;
 #[doc(hidden)]
 #[macro_export]
 macro_rules! bin_rel_plus_ternary_provider_rel_codegen {
-   ( $($tt: tt)* ) => { };
+    ( $($tt: tt)* ) => {};
 }
 pub use bin_rel_plus_ternary_provider_rel_codegen as rel_codegen;
 
 #[cfg(test)]
 mod test {
-   #[doc(hidden)]
-   #[macro_export]
-   macro_rules! bin_rel_plus_ternary_provider_ind_common {
+    #[doc(hidden)]
+    #[macro_export]
+    macro_rules! bin_rel_plus_ternary_provider_ind_common {
       ($name: ident, ($col0: ty, $col1: ty), $indices: tt, ser, ()) => {
          $crate::adaptor::bin_rel_provider::test::DummyRel<$col0, $col1>
       };
@@ -89,27 +89,27 @@ mod test {
             // reverse_map_1 required:
             {$crate::inds_contain!($indices, [1]) || $crate::inds_contain!($indices, [1, 2])},
             // reverse_map_2 required:
-            {$crate::inds_contain!($indices, [2]) || $crate::inds_contain!($indices, [1, 2])}, 
-            $col0, $col1, $col2, 
+            {$crate::inds_contain!($indices, [2]) || $crate::inds_contain!($indices, [1, 2])},
+            $col0, $col1, $col2,
             $crate::adaptor::bin_rel_provider::test::DummyRel<$col1, $col2>
          >
       };
    }
-   pub use bin_rel_plus_ternary_provider_ind_common as rel_ind_common;
+    pub use bin_rel_plus_ternary_provider_ind_common as rel_ind_common;
 
-   pub use super::{rel, rel_codegen, rel_full_ind, rel_ind};
+    pub use super::{rel, rel_codegen, rel_full_ind, rel_ind};
 
-   ascent::ascent! {
-      #[ds(self)]
-      relation foo(u32, u64, u128);
+    ascent::ascent! {
+       #[ds(self)]
+       relation foo(u32, u64, u128);
 
-      relation bar(u32, u64, u128);
+       relation bar(u32, u64, u128);
 
-      foo(*x as u32, *y as u64, *z as u128) <-- foo(y, x, z);
+       foo(*x as u32, *y as u64, *z as u128) <-- foo(y, x, z);
 
-      bar(x, y, z) <-- foo(x, y, z), bar(x, _, z);
+       bar(x, y, z) <-- foo(x, y, z), bar(x, _, z);
 
-      bar(x, y, z) <-- foo(_, y, z), bar(x, y, z), foo(x, _, _);
+       bar(x, y, z) <-- foo(_, y, z), bar(x, y, z), foo(x, _, _);
 
-   }
+    }
 }

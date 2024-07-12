@@ -6,13 +6,13 @@ ascent! {
     // Facts:
 
     relation number(isize);
-    
+
     // Rules:
-    
+
     relation even(isize);
 
     even(x) <-- number(x), if x % 2 == 0;
-    
+
     relation odd(isize);
 
     odd(x) <-- number(x), if x % 2 != 0;
@@ -20,25 +20,20 @@ ascent! {
 
 fn main() {
     let mut prog = AscentProgram::default();
-    
+
     prog.number = (1..=5).map(|n| (n,)).collect();
 
     prog.run();
 
-    let AscentProgram { mut even, mut odd, ..} = prog;
+    let AscentProgram {
+        mut even, mut odd, ..
+    } = prog;
 
     even.sort_by_key(|(key,)| *key);
 
-    assert_eq!(even, vec![
-        (2,),
-        (4,),
-    ]);
+    assert_eq!(even, vec![(2,), (4,),]);
 
     odd.sort_by_key(|(key,)| *key);
 
-    assert_eq!(odd, vec![
-        (1,),
-        (3,),
-        (5,),
-    ]);
+    assert_eq!(odd, vec![(1,), (3,), (5,),]);
 }

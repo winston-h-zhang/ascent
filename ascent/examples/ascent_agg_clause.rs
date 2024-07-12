@@ -1,14 +1,17 @@
 //! Aggregate `agg` clause
 
-use ascent::{aggregators::{count, max, mean, min, sum}, ascent};
+use ascent::{
+    aggregators::{count, max, mean, min, sum},
+    ascent,
+};
 
 ascent! {
     // Facts:
 
     relation number(i32);
-    
+
     // Rules:
-    
+
     relation lowest(i32);
 
     lowest(y) <-- agg y = min(x) in number(x);
@@ -32,12 +35,19 @@ ascent! {
 
 fn main() {
     let mut prog = AscentProgram::default();
-    
+
     prog.number = (1..=5).map(|n| (n,)).collect();
 
     prog.run();
 
-    let AscentProgram { lowest, greatest, average, total, cardinality, ..} = prog;
+    let AscentProgram {
+        lowest,
+        greatest,
+        average,
+        total,
+        cardinality,
+        ..
+    } = prog;
 
     assert_eq!(lowest, vec![(1,)]);
     assert_eq!(greatest, vec![(5,)]);

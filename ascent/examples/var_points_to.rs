@@ -66,10 +66,8 @@ ascent! {
 
 fn main() {
     let mut prog = AscentProgram::default();
-    
-    prog.assign = vec![
-        (Var("v1"), Var("v2"))
-    ];
+
+    prog.assign = vec![(Var("v1"), Var("v2"))];
 
     prog.new = vec![
         (Var("v1"), Obj("h1")),
@@ -77,36 +75,42 @@ fn main() {
         (Var("v3"), Obj("h3")),
     ];
 
-    prog.st = vec![
-        (Var("v1"), Field("f"), Var("v3")),
-    ];
+    prog.st = vec![(Var("v1"), Field("f"), Var("v3"))];
 
-    prog.ld = vec![
-        (Var("v4"), Var("v1"), Field("f")),
-    ];
+    prog.ld = vec![(Var("v4"), Var("v1"), Field("f"))];
 
     prog.run();
 
-    let AscentProgram { mut alias, mut points_to, .. } = prog;
+    let AscentProgram {
+        mut alias,
+        mut points_to,
+        ..
+    } = prog;
 
     alias.sort_by_key(|(_, key)| key.0);
     alias.sort_by_key(|(key, _)| key.0);
 
-    assert_eq!(alias, vec![
-        (Var("v1"), Var("v1")),
-        (Var("v1"), Var("v2")),
-        (Var("v2"), Var("v2")),
-        (Var("v4"), Var("v3")),
-    ]);
+    assert_eq!(
+        alias,
+        vec![
+            (Var("v1"), Var("v1")),
+            (Var("v1"), Var("v2")),
+            (Var("v2"), Var("v2")),
+            (Var("v4"), Var("v3")),
+        ]
+    );
 
     points_to.sort_by_key(|(_, key)| key.0);
     points_to.sort_by_key(|(key, _)| key.0);
 
-    assert_eq!(points_to, vec![
-        (Var("v1"), Obj("h1")),
-        (Var("v1"), Obj("h2")),
-        (Var("v2"), Obj("h2")),
-        (Var("v3"), Obj("h3")),
-        (Var("v4"), Obj("h3")),
-    ]);
+    assert_eq!(
+        points_to,
+        vec![
+            (Var("v1"), Obj("h1")),
+            (Var("v1"), Obj("h2")),
+            (Var("v2"), Obj("h2")),
+            (Var("v3"), Obj("h3")),
+            (Var("v4"), Obj("h3")),
+        ]
+    );
 }
