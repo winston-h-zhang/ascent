@@ -9,7 +9,7 @@ use proc_macro2::{Ident, Span, TokenStream};
 use syn::{parse2, parse_quote, spanned::Spanned, Attribute, Error, Expr, Pat, Path, Type};
 
 use crate::ascent_syntax::{
-    BodyClauseArg, BodyItemNode, CondClause, GeneratorNode, RelationIdentity, RuleNode,
+    generate_auto_trace, BodyClauseArg, BodyItemNode, CondClause, GeneratorNode, RelationIdentity, RuleNode, TraceAttribute
 };
 use crate::{
     ascent_syntax::{DsAttributeContents, RelationNode, Signatures},
@@ -22,6 +22,7 @@ use crate::{
 pub(crate) struct AscentConfig {
     #[allow(dead_code)]
     pub attrs: Vec<Attribute>,
+    pub global_trace: bool,
     pub include_rule_times: bool,
     pub generate_run_partial: bool,
     pub inter_rule_parallelism: bool,
@@ -29,11 +30,18 @@ pub(crate) struct AscentConfig {
 }
 
 impl AscentConfig {
+    const TRACE_ATTR: &'static str = "trace";
     const MEASURE_RULE_TIMES_ATTR: &'static str = "measure_rule_times";
     const GENERATE_RUN_TIMEOUT_ATTR: &'static str = "generate_run_timeout";
     const INTER_RULE_PARALLELISM_ATTR: &'static str = "inter_rule_parallelism";
 
     pub fn new(attrs: Vec<Attribute>, is_parallel: bool) -> syn::Result<AscentConfig> {
+        let global_trace = attrs
+            .iter()
+            .find(|attr| attr.meta.path().is_ident(Self::TRACE_ATTR))
+            .map(|attr| attr.meta.require_path_only())
+            .transpose()?
+            .is_some();
         let include_rule_times = attrs
             .iter()
             .find(|attr| attr.meta.path().is_ident(Self::MEASURE_RULE_TIMES_ATTR))
@@ -53,6 +61,7 @@ impl AscentConfig {
             .transpose()?;
 
         let recognized_attrs = [
+            Self::TRACE_ATTR,
             Self::MEASURE_RULE_TIMES_ATTR,
             Self::GENERATE_RUN_TIMEOUT_ATTR,
             Self::INTER_RULE_PARALLELISM_ATTR,
@@ -85,6 +94,7 @@ impl AscentConfig {
         Ok(AscentConfig {
             inter_rule_parallelism: inter_rule_parallelism.is_some(),
             attrs,
+            global_trace,
             include_rule_times,
             generate_run_partial,
             default_ds,
@@ -113,6 +123,7 @@ pub(crate) struct RelationMetadata {
 }
 
 pub(crate) struct IrRule {
+    pub trace_attr: Option<TraceAttribute>,
     pub head_clauses: Vec<IrHeadClause>,
     pub body_items: Vec<IrBodyItem>,
     pub simple_join_start_index: Option<usize>,
@@ -268,12 +279,12 @@ pub(crate) fn compile_ascent_program_to_hir(
     prog: &AscentProgram,
     is_parallel: bool,
 ) -> syn::Result<AscentIr> {
+    let config = AscentConfig::new(prog.attributes.clone(), is_parallel)?;
     let ir_rules: Vec<(IrRule, Vec<IrRelation>)> = prog
         .rules
         .iter()
-        .map(|r| compile_rule_to_ir_rule(r, prog))
+        .map(|r| compile_rule_to_ir_rule(r, prog, config.global_trace))
         .try_collect()?;
-    let config = AscentConfig::new(prog.attributes.clone(), is_parallel)?;
     let num_relations = prog.relations.len();
     let mut relations_ir_relations: HashMap<RelationIdentity, HashSet<IrRelation>> =
         HashMap::with_capacity(num_relations);
@@ -398,6 +409,7 @@ fn get_ds_attr(attrs: &[Attribute]) -> syn::Result<Option<DsAttributeContents>> 
 fn compile_rule_to_ir_rule(
     rule: &RuleNode,
     prog: &AscentProgram,
+    global_trace: bool,
 ) -> syn::Result<(IrRule, Vec<IrRelation>)> {
     let mut body_items = vec![];
     let mut grounded_vars = vec![];
@@ -421,6 +433,20 @@ fn compile_rule_to_ir_rule(
         }
         Ok(())
     }
+
+    let mut trace_attr = None;
+
+    for attr in &rule.attrs {
+        if attr.path().is_ident("trace") {
+            trace_attr = Some(attr.parse_args::<TraceAttribute>()?);
+            break;
+        }
+    }
+
+    if trace_attr.is_none() && global_trace {
+        trace_attr = Some(generate_auto_trace(rule));
+    }
+
 
     let first_clause_ind = rule
         .body_items
@@ -603,6 +629,7 @@ fn compile_rule_to_ir_rule(
 
     Ok((
         IrRule {
+            trace_attr,
             simple_join_start_index,
             head_clauses,
             body_items,

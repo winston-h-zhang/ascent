@@ -3,10 +3,9 @@ extern crate proc_macro;
 use ascent_base::util::update;
 use proc_macro2::{Span, TokenStream};
 use std::{
-    collections::{HashMap, HashSet},
-    sync::Mutex,
+    collections::{HashMap, HashSet}, iter::repeat, sync::Mutex
 };
-use syn::parse::{Parse, ParseStream, Parser};
+use syn::{parse::{Parse, ParseStream, Parser}, LitStr};
 use syn::{
     braced, parenthesized, parse2, punctuated::Punctuated, spanned::Spanned, Attribute, Error,
     Expr, ExprMacro, Generics, Ident, Pat, Result, Token, Type, Visibility, WhereClause,
@@ -465,6 +464,7 @@ impl AggregatorNode {
 }
 
 pub struct RuleNode {
+    pub attrs: Vec<Attribute>,
     pub head_clauses: Punctuated<HeadItemNode, Token![,]>,
     pub body_items: Vec<BodyItemNode>, // Punctuated<BodyItemNode, Token![,]>,
 }
@@ -483,6 +483,7 @@ impl Parse for RuleNode {
             // println!("fact rule!!!");
             input.parse::<Token![;]>()?;
             Ok(RuleNode {
+                attrs: vec![],
                 head_clauses,
                 body_items: vec![], /*Punctuated::default()*/
             })
@@ -497,6 +498,7 @@ impl Parse for RuleNode {
                 Punctuated::<BodyItemNode, Token![,]>::parse_separated_nonempty(input)?;
             input.parse::<Token![;]>()?;
             Ok(RuleNode {
+                attrs: vec![],
                 head_clauses,
                 body_items: body_items.into_iter().collect(),
             })
@@ -609,10 +611,9 @@ impl Parse for AscentProgram {
                 }
                 macros.push(MacroDefNode::parse(input)?);
             } else {
-                if !attrs.is_empty() {
-                    return Err(Error::new(attrs[0].span(), "unexpected attribute(s) 2"));
-                }
-                rules.push(RuleNode::parse(input)?);
+                let mut rule_node = RuleNode::parse(input)?;
+                rule_node.attrs = attrs;
+                rules.push(rule_node);
             }
         }
         Ok(AscentProgram {
@@ -665,6 +666,84 @@ impl Parse for DsAttributeContents {
     }
 }
 
+#[derive(Debug, Clone)]
+pub(crate) struct TraceAttribute {
+    pub(crate) format_string: String,
+    pub(crate) args: Vec<Expr>,
+}
+
+impl Parse for TraceAttribute {
+    fn parse(input: ParseStream<'_>) -> Result<Self> {
+        let format_string: LitStr = input.parse()?;
+        let mut args = Vec::new();
+        while !input.is_empty() {
+            input.parse::<Token![,]>()?;
+            args.push(input.parse()?);
+        }
+        Ok(TraceAttribute {
+            format_string: format_string.value(),
+            args,
+        })
+    }
+}
+
+pub(crate) fn generate_auto_trace(rule: &RuleNode) -> TraceAttribute {
+    let mut format_parts = Vec::new();
+    let mut args = Vec::new();
+
+    fn repeat_n(n: usize) -> String {
+        repeat("{:?}").take(n).join(", ")
+    }
+
+    for head_clause in &rule.head_clauses {
+        let head_clause = head_clause.clause();
+        let mut clause_format = format!("{}(", head_clause.rel);
+        clause_format.push_str(&repeat_n(head_clause.args.len()));
+        clause_format.push(')');
+        format_parts.push(clause_format);
+
+        for arg in &head_clause.args {
+            args.push(arg.clone());
+        }
+    }
+
+    format_parts.push("<--".to_string());
+
+    for body_item in &rule.body_items {
+        match body_item {
+            BodyItemNode::Clause(clause) => {
+                let mut clause_format = format!("{}(", clause.rel);
+                clause_format.push_str(&repeat_n(clause.args.len()));
+                clause_format.push(')');
+                format_parts.push(clause_format);
+
+                for arg in &clause.args {
+                    if let BodyClauseArg::Expr(expr) = arg {
+                        args.push(expr.clone());
+                    }
+                }
+            }
+            BodyItemNode::Generator(_) => format_parts.push("for ...".to_string()),
+            BodyItemNode::Cond(cond) => {
+                match cond {
+                    CondClause::If(_) => format_parts.push("if ...".to_string()),
+                    CondClause::IfLet(_) => format_parts.push("if let ...".to_string()),
+                    CondClause::Let(_) => format_parts.push("let ...".to_string()),
+                }
+            }
+            BodyItemNode::Agg(_) => format_parts.push("agg ...".to_string()),
+            _ => format_parts.push("...".to_string()),
+        }
+    }
+
+    let format_string = format_parts.join(" ");
+
+    TraceAttribute {
+        format_string,
+        args,
+    }
+}
+
 fn rule_desugar_disjunction_nodes(rule: RuleNode) -> Vec<RuleNode> {
     fn bitem_desugar(bitem: &BodyItemNode) -> Vec<Vec<BodyItemNode>> {
         match bitem {
@@ -709,6 +788,7 @@ fn rule_desugar_disjunction_nodes(rule: RuleNode) -> Vec<RuleNode> {
     let mut res = vec![];
     for conjunction in bitems_desugar(&rule.body_items) {
         res.push(RuleNode {
+            attrs: rule.attrs.clone(),
             body_items: conjunction,
             head_clauses: rule.head_clauses.clone(),
         })
@@ -923,6 +1003,7 @@ fn rule_desugar_pattern_args(rule: RuleNode) -> RuleNode {
     let mut gensym = GenSym::default();
     use BodyItemNode::*;
     RuleNode {
+        attrs: rule.attrs,
         body_items: rule
             .body_items
             .into_iter()
@@ -1189,6 +1270,7 @@ fn rule_expand_macro_invocations(
     .pipe(flatten_punctuated);
 
     Ok(RuleNode {
+        attrs: rule.attrs,
         body_items: new_body_items,
         head_clauses: new_head_items,
     })

@@ -1216,7 +1216,7 @@ fn head_clauses_structs_and_update_code(
         quote! { __changed.store(true, std::sync::atomic::Ordering::Relaxed);}
     };
 
-    for hcl in rule.head_clause.iter() {
+    for hcl in rule.head_clauses.iter() {
         let head_rel_name = Ident::new(&hcl.rel.name.to_string(), hcl.span);
         let hcl_args_converted = hcl.args.iter().cloned().map(convert_head_arg).collect_vec();
         let new_row_tuple = tuple_spanned(&hcl_args_converted, hcl.args_span);
@@ -1420,7 +1420,24 @@ fn head_clauses_structs_and_update_code(
             add_rows.push(add_row);
         }
     }
-    (quote! {}, quote! {#(#add_rows)*})
+
+    let trace_code = if let Some(trace_attr) = &rule.trace_attr {
+        let format_string = &trace_attr.format_string;
+        let args = &trace_attr.args;
+        quote! {
+            println!(#format_string, #(#args),*);
+        }
+    } else {
+        quote! {}
+    };
+
+    (
+        quote! {},
+        quote! {
+            #(#add_rows)*
+            #trace_code
+        },
+    )
 }
 
 fn lattice_insertion_mutex_var_name(head_relation: &RelationIdentity) -> Ident {
