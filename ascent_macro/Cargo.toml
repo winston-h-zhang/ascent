@@ -24,6 +24,5 @@ lazy_static = "1.4.0"
 duplicate = { version = "1.0.0", default-features = false }
 
 [dev-dependencies]
-ascent = { path = "../ascent" }
 rayon = "1.5"
 crossbeam = "0.8"

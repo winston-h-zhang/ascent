@@ -3,7 +3,7 @@ use crate::ascent_hir::{
     AscentConfig, AscentIr, IndexValType, IrAggClause, IrBodyClause, IrBodyItem, IrHeadClause,
     IrRelation, IrRule, RelationMetadata,
 };
-use crate::ascent_syntax::{CondClause, GeneratorNode, RelationIdentity};
+use crate::ascent_syntax::{CondClause, GeneratorNode, RelationIdentity, TraceAttribute};
 use crate::utils::{expr_to_ident, intersects, pat_to_ident, tuple_type};
 use crate::{
     ascent_mir::MirRelationVersion::*, ascent_syntax::Signatures, syn_utils::pattern_get_vars,
@@ -59,8 +59,8 @@ pub(crate) fn mir_summary(mir: &AscentMir) -> String {
 
 #[derive(Clone)]
 pub(crate) struct MirRule {
-    // TODO rename to head_clauses
-    pub head_clause: Vec<IrHeadClause>,
+    pub trace_attr: Option<TraceAttribute>,
+    pub head_clauses: Vec<IrHeadClause>,
     pub body_items: Vec<MirBodyItem>,
     pub simple_join_start_index: Option<usize>,
     pub reorderable: bool,
@@ -88,7 +88,7 @@ pub(crate) fn mir_rule_summary(rule: &MirRule) -> String {
     }
     format!(
         "{} <-- {}{simple_join}{reorderable}",
-        rule.head_clause
+        rule.head_clauses
             .iter()
             .map(|hcl| hcl.rel.name.to_string())
             .join(", "),
@@ -499,8 +499,9 @@ fn compile_hir_rule_to_mir_rules(
                 !intersects(pre_first_clause_vars, bcls[ind + 1].bound_vars())
             });
             MirRule {
+                trace_attr: rule.trace_attr.clone(),
                 body_items: bcls,
-                head_clause: rule.head_clauses.clone(),
+                head_clauses: rule.head_clauses.clone(),
                 simple_join_start_index: rule.simple_join_start_index,
                 reorderable,
             }
