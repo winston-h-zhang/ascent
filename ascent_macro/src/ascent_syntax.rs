@@ -83,17 +83,49 @@ impl Parse for Signatures {
     }
 }
 
-#[derive(Clone, Parse, Debug)]
+#[derive(Clone, Debug)]
 pub struct TypeSignature {
-    // We don't actually use the Parse impl to parse attrs.
-    #[call(Attribute::parse_outer)]
     pub attrs: Vec<Attribute>,
     pub visibility: Visibility,
     pub _struct_kw: Token![struct],
     pub ident: Ident,
-    #[call(parse_generics_with_where_clause)]
     pub generics: Generics,
-    pub _semi: Token![;],
+    pub fields: Punctuated<syn::Field, Token![,]>,
+    pub _semi: Option<Token![;]>,
+}
+
+impl Parse for TypeSignature {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let attrs = Attribute::parse_outer(input)?;
+        let visibility = input.parse()?;
+        let _struct_kw = input.parse()?;
+        let ident = input.parse()?;
+        let generics = parse_generics_with_where_clause(input)?;
+        
+        let fields = if input.peek(syn::token::Brace) {
+            let content;
+            braced!(content in input);
+            content.parse_terminated(syn::Field::parse_named, Token![,])?
+        } else {
+            Punctuated::new()
+        };
+        
+        let _semi = if fields.is_empty() {
+            Some(input.parse()?)
+        } else {
+            None
+        };
+
+        Ok(TypeSignature {
+            attrs,
+            visibility,
+            _struct_kw,
+            ident,
+            generics,
+            fields,
+            _semi,
+        })
+    }
 }
 
 #[derive(Clone, Parse, Debug)]

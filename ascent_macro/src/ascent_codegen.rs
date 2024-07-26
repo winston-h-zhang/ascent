@@ -69,6 +69,12 @@ pub(crate) fn compile_mir(mir: &AscentMir, is_ascent_run: bool) -> proc_macro2::
         }
     }
 
+    let user_fields = &mir.signatures.declaration.fields;
+    let user_field_defaults = user_fields.iter().map(|f| {
+        let name = &f.ident;
+        quote! { #name: Default::default(), }
+    });
+
     let sccs_ordered = &mir.sccs;
     let mut rule_time_fields = vec![];
     let mut rule_time_fields_defaults = vec![];
@@ -309,6 +315,7 @@ pub(crate) fn compile_mir(mir: &AscentMir, is_ascent_run: bool) -> proc_macro2::
        #(#struct_attrs)*
        #vis struct #struct_name #ty_impl_generics #ty_where_clause {
           #(#relation_fields)*
+          #user_fields
           scc_times: [std::time::Duration; #sccs_count],
           scc_iters: [usize; #sccs_count],
           #(#rule_time_fields)*
@@ -347,6 +354,7 @@ pub(crate) fn compile_mir(mir: &AscentMir, is_ascent_run: bool) -> proc_macro2::
           fn default() -> Self {
              let mut _self = #struct_name {
                 #(#field_defaults)*
+                #(#user_field_defaults)*
                 scc_times: [std::time::Duration::ZERO; #sccs_count],
                 scc_iters: [0; #sccs_count],
                 #(#rule_time_fields_defaults)*
