@@ -81,8 +81,8 @@ pub fn pattern_get_vars(pat: &Pat) -> Vec<Ident> {
         Pat::Wild(_) => {}
         _ => {}
     }
-    use itertools::Itertools;
-    println!("pattern vars {} : {}", pat.to_token_stream(), res.iter().map(|ident| ident.to_string()).join(", "));
+    // use itertools::Itertools;
+    // println!("pattern vars {} : {}", pat.to_token_stream(), res.iter().map(|ident| ident.to_string()).join(", "));
     res
 }
 
